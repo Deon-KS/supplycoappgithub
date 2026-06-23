@@ -1,0 +1,6 @@
+{
+  "name": "Supplyco Kerala",
+  "description": "Bilingual (English & Malayalam) premium grocery price-tracking and subsidy optimization assistant designed for the heritage of Kerala Civil Supplies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
