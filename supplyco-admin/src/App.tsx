@@ -1,13 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
-import { db } from "./firebase";
-import { Package, Plus, Trash2, Image as ImageIcon, AlignLeft, MapPin, MonitorPlay, Tag, Percent, Bell } from "lucide-react";
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
+import { db, auth } from "./firebase";
+import { Package, Plus, Trash2, Image as ImageIcon, AlignLeft, MapPin, MonitorPlay, Tag, Percent, Bell, Lock, Mail, LogOut, ShieldAlert } from "lucide-react";
 
 export default function App() {
   const [products, setProducts] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Auth State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
 
   
   const [activeTab, setActiveTab] = useState("products");
@@ -23,6 +31,17 @@ export default function App() {
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+      setIsAuthChecking(false);
+    });
+
+    if (!isAuthenticated) return unsubAuth;
+
     const unsubProducts = onSnapshot(collection(db, "products"), (snapshot) => {
       setProducts(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
     });
@@ -35,8 +54,22 @@ export default function App() {
     const unsubNotifications = onSnapshot(collection(db, "notifications"), (snapshot) => {
       setNotifications(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
     });
-    return () => { unsubProducts(); unsubOffers(); unsubBanners(); unsubNotifications(); };
-  }, []);
+    return () => { unsubProducts(); unsubOffers(); unsubBanners(); unsubNotifications(); unsubAuth(); };
+  }, [isAuthenticated]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err: any) {
+      setLoginError(err.message || "Login failed");
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+  };
 
   const handleAddProduct = async () => {
     await addDoc(collection(db, "products"), {
@@ -147,12 +180,81 @@ export default function App() {
     setSelectedProductIds(new Set());
   };
 
+  if (isAuthChecking) {
+    return <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center font-bold text-emerald-800">Checking authentication...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center p-4 font-sans text-slate-800">
+        <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-emerald-800 p-6 text-center">
+            <Package className="w-12 h-12 text-white mx-auto mb-2" />
+            <h1 className="text-2xl font-bold text-white tracking-wide">Supplyco Admin</h1>
+            <p className="text-emerald-100 text-sm mt-1">Secure Management Portal</p>
+          </div>
+          
+          <div className="p-6 md:p-8">
+            <form onSubmit={handleLogin} className="space-y-4">
+              {loginError && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-semibold flex items-start gap-2">
+                  <ShieldAlert className="w-5 h-5 shrink-0" />
+                  <p>{loginError}</p>
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Admin Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                  <input 
+                    type="email" 
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all font-medium"
+                    placeholder="admin@supplyco.com"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                  <input 
+                    type="password" 
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all font-medium"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm mt-6"
+              >
+                Secure Login
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f3f4f6] font-sans text-slate-800 pb-20">
       <nav className="bg-emerald-800 text-white p-4 shadow-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">
             <Package className="w-6 h-6" /> Supplyco Admin
+            <button onClick={handleLogout} className="ml-4 flex items-center gap-1 text-xs bg-emerald-700 hover:bg-emerald-600 px-2 py-1 rounded transition-colors">
+              <LogOut className="w-3 h-3" /> Logout
+            </button>
           </h1>
           
           <div className="flex flex-col md:flex-row items-center gap-4">
