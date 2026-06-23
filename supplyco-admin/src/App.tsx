@@ -345,6 +345,18 @@ export default function App() {
                       <option value="sabari">Category: Sabari Brands</option>
                     </select>
 
+                    <select 
+                      className="text-xs p-2 rounded-lg border border-emerald-200 outline-none focus:border-emerald-400 bg-emerald-50 font-bold text-emerald-900"
+                      value={p.storeId || "global"}
+                      onChange={(e) => updateDoc(doc(db, "products", p.id), { storeId: e.target.value })}
+                    >
+                      <option value="global">Scope: All Stores (Global)</option>
+                      <option value="tvm_eastfort">Scope: Trivandrum East Fort</option>
+                      <option value="ekm_mgroad">Scope: Ernakulam MG Road</option>
+                      <option value="kzk_palayam">Scope: Kozhikode Palayam</option>
+                      <option value="tsr_round">Scope: Thrissur Swaraj Round</option>
+                    </select>
+
                     <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
                       <input type="checkbox" checked={p.isSubsidy} onChange={(e) => updateDoc(doc(db, "products", p.id), { isSubsidy: e.target.checked })} className="w-4 h-4 accent-emerald-600 rounded" />
                       Government Subsidy
